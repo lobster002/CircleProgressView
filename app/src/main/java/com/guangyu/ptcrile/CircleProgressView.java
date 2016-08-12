@@ -178,21 +178,21 @@ public class CircleProgressView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        beforeDraw();
-        drawBg(canvas);
-        drawCircle(canvas);
-        drawText(canvas);
-        drawRedDot(canvas);
-        afterDraw();
+        doBefore();//绘制之前
+        drawBg(canvas);//绘制背景
+        drawCircle(canvas);//绘制圆形进度
+        drawText(canvas);//绘制 文本
+        drawDot(canvas);//绘制小圆点
+        doAfter();//绘制之后
     }
 
-    private void beforeDraw() {
+    private void doBefore() {
         synchronized (lock) {
             startTime = System.currentTimeMillis();
         }
     }
 
-    private void afterDraw() {
+    private void doAfter() {
         if (sweepAngle > 360.0f) {
             if (null != listener) {
                 listener.callback();
@@ -206,11 +206,10 @@ public class CircleProgressView extends View {
         }
     }
 
-    private void drawRedDot(Canvas canvas) {
+    private void drawDot(Canvas canvas) {
 
         if (sweepAngle > 300.0f) {
             int index = (int) ((360 - sweepAngle) / 12 + 1);
-            String text = String.valueOf(index);
             // 第四象限(先转换为角度,然后根据圆里面的关系去换算为坐标)
             double angle = Math.toRadians(sweepAngle - 270f);
             double sin = Math.sin(angle);
@@ -219,14 +218,18 @@ public class CircleProgressView extends View {
             float y1 = (float) (centerY - (radius - dip2px(deltaCircleValue)) * sin);
             mSmallCirclePaint.setColor(currentColor);
             // 调节位置,因为可能超过显示区域
-            if (index > 2) {
+
+            String text = String.valueOf(index);
+            if (sweepAngle > 348.0f) {//小于等于1
+                float scale = mSmallCircleRadius - dip2px((sweepAngle - 348.0f) / 2);
+                canvas.drawCircle(x1, y1, scale, mSmallCirclePaint);
+                if (0 != index) {//0的时候显示无意义
+                    Rect rect = new Rect();
+                    mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
+                    canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
+                }
+            } else {//大于1
                 canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
-                Rect rect = new Rect();
-                mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
-                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
-            } else {
-                // 调节"1"的位置
-                canvas.drawCircle(x1, y1, mSmallCircleRadius - dip2px((sweepAngle - 336.0f) / 3f), mSmallCirclePaint);
                 Rect rect = new Rect();
                 mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
                 canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
