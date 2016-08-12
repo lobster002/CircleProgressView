@@ -33,11 +33,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        String text = editText.getText().toString().trim();
-        if (TextUtils.isEmpty(text)) {
-            return;
+//        String text = editText.getText().toString().trim();
+//        if (TextUtils.isEmpty(text)) {
+//            return;
+//        }
+//        long value = Long.valueOf(text);
+//        c.setCurrentProgress(value);
+        if (c.isAnimStopped()) {
+            c.startAnim();
+        } else {
+            c.stopAnim();
         }
-        long value = Long.valueOf(text);
-        c.setCurrentProgress(value);
     }
 }

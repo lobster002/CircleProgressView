@@ -16,7 +16,7 @@ import android.view.View;
 /**
  * 如果觉得进度太快请设置{@link #EVERY_INVALIDATE_INTERVAL} 单位是毫秒 <br>
  * 要修改文字内容请调用{@link #changeNeedStr(String)}<br>
- * <code>Activity onDestroy</code>的时候,请调用{@link #setShouldStopAnim(boolean)},防止内存泄露<br>
+ * <code>Activity onDestroy</code>的时候,请调用{@link #stopAnim()} ,防止内存泄露<br>
  */
 public class CircleProgressView extends View {
     /**
@@ -63,12 +63,10 @@ public class CircleProgressView extends View {
     private float mSmallCircleRadius;
     private float mRingStrokeWidth;
     private RectF insideRectF;
-    private volatile int mWidth;
-    private volatile int mHeight;
-    private float sweepAngle;
+    private float sweepAngle;//偏转角度
     private int centerX = 0;
     private int centerY = 0;
-    private volatile int currentColor = 0;
+    private volatile int currentColor = 0;//当前进度条颜色
 
 
     private int deltaCircleValue = 12;
@@ -154,8 +152,6 @@ public class CircleProgressView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        mWidth = w;
-        mHeight = h;
         centerX = w >> 1;
         centerY = h >> 1;
         radius = (centerX > centerY ? centerY : centerX);
@@ -170,8 +166,8 @@ public class CircleProgressView extends View {
         } else {
             mTextPaint.getTextBounds(mTextStr, 0, mTextStr.length(), rect);
         }
-        mTextX = mWidth / 2F - rect.width() / 2F;
-        mTextY = mHeight / 2F + rect.height() / 2F;
+        mTextX = centerX - rect.width() / 2F;
+        mTextY = centerY + rect.height() / 2F;
     }
 
     @Override
@@ -184,13 +180,13 @@ public class CircleProgressView extends View {
         doAfter();//绘制之后
     }
 
-    private void doBefore() {
+    private void doBefore() {//绘制之前的准备工作 在这里处理
         synchronized (lock) {
             startTime = System.currentTimeMillis();
         }
     }
 
-    private void doAfter() {
+    private void doAfter() {//绘制完毕之后 其他的逻辑
 //        long endTime = System.currentTimeMillis();
 //        Log.e("Tag", String.valueOf((endTime - startTime) / 1000));
         if (sweepAngle > 360.0f) {
@@ -247,6 +243,9 @@ public class CircleProgressView extends View {
 
     private void drawCircle(Canvas canvas) {
         long deltaTime = startTime - theStartTime;
+        if (deltaTime > COMPLETE_PROGRESS_TIME) {
+            deltaTime %= COMPLETE_PROGRESS_TIME;
+        }
         sweepAngle = (float) (deltaTime * 0.012);//偏转角度
         float fraction = sweepAngle / COMPLETE_PROGRESS_DEGREE;
         currentColor = getCurrentColor(fraction);
@@ -274,12 +273,18 @@ public class CircleProgressView extends View {
         }
     }
 
-    public boolean isShouldStopAnim() {
+
+    public  boolean isAnimStopped(){//判断是否 停止更新
         return mShouldStopAnim;
     }
 
-    public void setShouldStopAnim(boolean mShouldStopAnim) {
-        this.mShouldStopAnim = mShouldStopAnim;
+    public void startAnim(){
+        mShouldStopAnim = false;
+        postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
+    }
+
+    public void stopAnim(){
+        mShouldStopAnim = true;
     }
 
     /**
