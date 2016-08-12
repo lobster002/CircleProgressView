@@ -117,7 +117,7 @@ public class CircleProgressView extends View {
 
     private void init(Context context, AttributeSet attrs) {
         mTextSize = sp2px(55);
-        mSmallTextSize = sp2px(14);
+        mSmallTextSize = sp2px(10);
         mRingStrokeWidth = dip2px(10);
         mSmallCircleRadius = dip2px(11);
 
@@ -159,16 +159,6 @@ public class CircleProgressView extends View {
                 centerX + radius - dip2px(deltaCircleValue), centerY + radius - dip2px(deltaCircleValue));
     }
 
-    private void calculateNeedSomething() {
-        Rect rect = new Rect();
-        if (TextUtils.isEmpty(mTextStr)) {
-            mTextPaint.getTextBounds(" ", 0, 1, rect);
-        } else {
-            mTextPaint.getTextBounds(mTextStr, 0, mTextStr.length(), rect);
-        }
-        mTextX = centerX - rect.width() / 2F;
-        mTextY = centerY + rect.height() / 2F;
-    }
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -235,8 +225,12 @@ public class CircleProgressView extends View {
     }
 
     private void drawText(Canvas canvas) {
-        calculateNeedSomething();
+
         if (!TextUtils.isEmpty(mTextStr)) {
+            Rect rect = new Rect();
+            mTextPaint.getTextBounds(mTextStr, 0, mTextStr.length(), rect);
+            mTextX = centerX - rect.width() / 2F;
+            mTextY = centerY + rect.height() / 2F;
             canvas.drawText(mTextStr, mTextX, mTextY, mTextPaint);
         }
     }
@@ -274,16 +268,16 @@ public class CircleProgressView extends View {
     }
 
 
-    public  boolean isAnimStopped(){//判断是否 停止更新
+    public boolean isAnimStopped() {//判断是否 停止更新
         return mShouldStopAnim;
     }
 
-    public void startAnim(){
+    public void startAnim() {
         mShouldStopAnim = false;
         postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
     }
 
-    public void stopAnim(){
+    public void stopAnim() {
         mShouldStopAnim = true;
     }
 

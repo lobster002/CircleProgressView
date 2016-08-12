@@ -34,6 +34,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     EditText editText;
 
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        c.stopAnim();
+    }
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
