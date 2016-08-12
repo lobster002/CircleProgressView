@@ -23,10 +23,11 @@
     <EditText
         android:id="@+id/edit"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_alignParentBottom="true"
         android:textColorHint="#000"
         android:hint="在这里输入设置进度"
+        android:background="@android:color/white"
         android:inputType="number"
         android:textSize="18sp"/>
 
