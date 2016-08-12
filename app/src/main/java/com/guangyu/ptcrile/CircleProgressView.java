@@ -2,12 +2,9 @@ package com.guangyu.ptcrile;
 
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -59,8 +56,6 @@ public class CircleProgressView extends View {
 
     private Paint insideCirclePaint;
     private Paint mTextPaint;
-    private static final int COLOR_GREEN = Color.GREEN;
-    private static final int COLOR_RED = Color.RED;
     private volatile String mTextStr;
     private float mTextSize;
     private float mSmallTextSize;
@@ -73,6 +68,7 @@ public class CircleProgressView extends View {
     private float sweepAngle;
     private int centerX = 0;
     private int centerY = 0;
+    private volatile int currentColor = 0;
 
 
     private int deltaCircleValue = 12;
@@ -131,7 +127,7 @@ public class CircleProgressView extends View {
         mRingPaint.setStyle(Paint.Style.STROKE);
         mRingPaint.setStrokeWidth(mRingStrokeWidth);
         mRingPaint.setStrokeCap(Paint.Cap.ROUND);
-        mRingPaint.setColor(COLOR_GREEN);
+        mRingPaint.setColor(Color.GREEN);
 
         insideCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         insideCirclePaint.setStyle(Paint.Style.STROKE);
@@ -142,7 +138,7 @@ public class CircleProgressView extends View {
         mBgCirclePaint.setColor(bgColor);
 
         mSmallCirclePaint = new Paint(mBgCirclePaint);
-        mSmallCirclePaint.setColor(COLOR_RED);
+        mSmallCirclePaint.setColor(Color.RED);
 
         mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.setTextSize(mTextSize);
@@ -221,6 +217,7 @@ public class CircleProgressView extends View {
             double cos = Math.cos(angle);
             float x1 = (float) (centerX - (radius - dip2px(deltaCircleValue)) * cos);
             float y1 = (float) (centerY - (radius - dip2px(deltaCircleValue)) * sin);
+            mSmallCirclePaint.setColor(currentColor);
             // 调节位置,因为可能超过显示区域
             if (index > 2) {
                 canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
@@ -249,7 +246,8 @@ public class CircleProgressView extends View {
         long deltaTime = startTime - theStartTime;
         sweepAngle = (float) (deltaTime * 0.012);//偏转角度
         float fraction = sweepAngle / COMPLETE_PROGRESS_DEGREE;
-        mRingPaint.setColor(getCurrentColor(fraction));
+        currentColor = getCurrentColor(fraction);
+        mRingPaint.setColor(currentColor);
 
         canvas.drawArc(insideRectF, DEFAULT_PROGRESS_DEGREE, 360.0f, false, insideCirclePaint);
         canvas.drawArc(mRectF, DEFAULT_PROGRESS_DEGREE, sweepAngle, false, mRingPaint);
@@ -335,10 +333,13 @@ public class CircleProgressView extends View {
     private final int COLOR_END = Color.parseColor("#ff3c61");
 
     private int getCurrentColor(float progress) {
-        if (progress < 0.5f) {
-            return evaluate(progress * 2, COLOR_BEGIN, COLOR_MEDUIM);
+        if (progress <= 0.5f) {
+            return COLOR_BEGIN;
+        } else if (progress >= 0.5f && progress < 0.75f) {
+            return evaluate((progress - 0.5f) * 4, COLOR_BEGIN, COLOR_MEDUIM);
+        } else {
+            return evaluate((progress - 0.75f) * 4, COLOR_MEDUIM, COLOR_END);
         }
-        return evaluate((progress - 0.5f) * 2, COLOR_MEDUIM, COLOR_END);
     }
 
 
