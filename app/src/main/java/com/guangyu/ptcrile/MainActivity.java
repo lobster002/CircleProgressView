@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -27,22 +28,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
 
         findViewById(R.id.btn).setOnClickListener(this);
+        findViewById(R.id.btn2).setOnClickListener(this);
+
     }
 
     EditText editText;
 
     @Override
     public void onClick(View v) {
-//        String text = editText.getText().toString().trim();
-//        if (TextUtils.isEmpty(text)) {
-//            return;
-//        }
-//        long value = Long.valueOf(text);
-//        c.setCurrentProgress(value);
-        if (c.isAnimStopped()) {
-            c.startAnim();
-        } else {
-            c.stopAnim();
+        switch (v.getId()) {
+            case R.id.btn:
+                String text = editText.getText().toString().trim();
+                if (TextUtils.isEmpty(text)) {
+                    return;
+                }
+                long value = Long.valueOf(text);
+                c.setCurrentProgress(value);
+                break;
+            case R.id.btn2:
+                if (c.isAnimStopped()) {
+                    c.startAnim();
+                    ((Button) v).setText("stop");
+                } else {
+                    c.stopAnim();
+                    ((Button) v).setText("start");
+                }
+                break;
         }
     }
 }
