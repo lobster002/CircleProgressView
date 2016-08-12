@@ -10,6 +10,7 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 /**
@@ -61,7 +62,6 @@ public class CircleProgressView extends View {
     private float mSmallTextSize;
     private float mSmallCircleRadius;
     private float mRingStrokeWidth;
-    private RectF mRectF;
     private RectF insideRectF;
     private volatile int mWidth;
     private volatile int mHeight;
@@ -159,8 +159,6 @@ public class CircleProgressView extends View {
         centerX = w >> 1;
         centerY = h >> 1;
         radius = (centerX > centerY ? centerY : centerX);
-        mRectF = new RectF(0 + dip2px(deltaCircleValue), 0 + dip2px(deltaCircleValue),
-                w - dip2px(deltaCircleValue), h - dip2px(deltaCircleValue));
         insideRectF = new RectF(centerX - radius + dip2px(deltaCircleValue), centerY - radius + dip2px(deltaCircleValue),
                 centerX + radius - dip2px(deltaCircleValue), centerY + radius - dip2px(deltaCircleValue));
     }
@@ -193,6 +191,8 @@ public class CircleProgressView extends View {
     }
 
     private void doAfter() {
+//        long endTime = System.currentTimeMillis();
+//        Log.e("Tag", String.valueOf((endTime - startTime) / 1000));
         if (sweepAngle > 360.0f) {
             if (null != listener) {
                 listener.callback();
@@ -253,7 +253,7 @@ public class CircleProgressView extends View {
         mRingPaint.setColor(currentColor);
 
         canvas.drawArc(insideRectF, DEFAULT_PROGRESS_DEGREE, 360.0f, false, insideCirclePaint);
-        canvas.drawArc(mRectF, DEFAULT_PROGRESS_DEGREE, sweepAngle, false, mRingPaint);
+        canvas.drawArc(insideRectF, DEFAULT_PROGRESS_DEGREE, sweepAngle, false, mRingPaint);
     }
 
     private void drawBg(Canvas canvas) {
