@@ -6,6 +6,8 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -22,19 +24,19 @@ public class CircleProgressView extends View {
     /**
      * 每次自动刷新时间,可以自己修改(请暂不要自己修改)
      */
-    private static final long EVERY_INVALIDATE_INTERVAL = 10L;
+    private final long EVERY_INVALIDATE_INTERVAL = 10L;
     /**
      * 完成一圈进度时间(请暂不要自己修改)
      */
-    private static final long COMPLETE_PROGRESS_TIME = 30 * 1000L;
+    private final long COMPLETE_PROGRESS_TIME = 30 * 1000L;
     /**
      * 旋转总的进度
      */
-    private static final float COMPLETE_PROGRESS_DEGREE = 360F;
+    private final float COMPLETE_PROGRESS_DEGREE = 360F;
     /**
      * 最开始的弧度
      */
-    private static final float DEFAULT_PROGRESS_DEGREE = -90F;
+    private final float DEFAULT_PROGRESS_DEGREE = -90F;
     /**
      * 圆环画笔
      */
@@ -54,6 +56,8 @@ public class CircleProgressView extends View {
     /**
      * 中间文字画笔
      */
+
+    private Paint insideCirclePaint;
     private Paint mTextPaint;
     private static final int COLOR_GREEN = Color.GREEN;
     private static final int COLOR_RED = Color.RED;
@@ -61,12 +65,17 @@ public class CircleProgressView extends View {
     private float mTextSize;
     private float mSmallTextSize;
     private float mSmallCircleRadius;
-    private int mSmallTextColor;
     private float mRingStrokeWidth;
     private RectF mRectF;
-    private int mWidth;
-    private int mHeight;
+    private RectF insideRectF;
+    private volatile int mWidth;
+    private volatile int mHeight;
     private float sweepAngle;
+    private int centerX = 0;
+    private int centerY = 0;
+
+
+    private int deltaCircleValue = 12;
     /**
      * 走完一圈需要的总的刷新次数
      */
@@ -86,6 +95,8 @@ public class CircleProgressView extends View {
 
     private volatile long startTime = 0l;
     private volatile long theStartTime = 0l;
+
+    private int bgColor = Color.parseColor("#33000000");
 
     private Object lock = new Object();
 
@@ -111,40 +122,51 @@ public class CircleProgressView extends View {
     }
 
     private void init(Context context, AttributeSet attrs) {
-        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.CircleProgressView);
-        mTextSize = ta.getDimensionPixelSize(R.styleable.CircleProgressView_textSize, sp2px(context, 20));
-        mSmallTextSize = ta.getDimensionPixelSize(R.styleable.CircleProgressView_smallTextSize, sp2px(context, 10));
-        mRingStrokeWidth = ta.getDimension(R.styleable.CircleProgressView_ringStrokeWidth, dip2px(5));
-        mTextStr = ta.getString(R.styleable.CircleProgressView_textStr);
-        mSmallCircleRadius = ta.getDimension(R.styleable.CircleProgressView_smallCircleRadius, dip2px(8));
-        mSmallTextColor = ta.getColor(R.styleable.CircleProgressView_smallTextColor, Color.WHITE);
-        ta.recycle();
+        mTextSize = sp2px(55);
+        mSmallTextSize = sp2px(14);
+        mRingStrokeWidth = dip2px(10);
+        mSmallCircleRadius = dip2px(11);
 
         mRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mRingPaint.setStyle(Paint.Style.STROKE);
         mRingPaint.setStrokeWidth(mRingStrokeWidth);
+        mRingPaint.setStrokeCap(Paint.Cap.ROUND);
         mRingPaint.setColor(COLOR_GREEN);
 
+        insideCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        insideCirclePaint.setStyle(Paint.Style.STROKE);
+        insideCirclePaint.setStrokeWidth(dip2px(10));
+        insideCirclePaint.setColor(bgColor);
+
         mBgCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mBgCirclePaint.setColor(bgColor);
+
         mSmallCirclePaint = new Paint(mBgCirclePaint);
         mSmallCirclePaint.setColor(COLOR_RED);
-        mBgCirclePaint.setColor(Color.WHITE);
+
         mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.setTextSize(mTextSize);
+
         mSmallTextPaint = new Paint(mTextPaint);
         mSmallTextPaint.setTextSize(mSmallTextSize);
-        mSmallTextPaint.setColor(mSmallTextColor);
+        mSmallTextPaint.setColor(Color.WHITE);
 
         startTime = theStartTime = System.currentTimeMillis();
-    }
 
+    }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         mWidth = w;
         mHeight = h;
-        mRectF = new RectF(mRingStrokeWidth, mRingStrokeWidth, mWidth - mRingStrokeWidth, mHeight - mRingStrokeWidth);
+        centerX = w >> 1;
+        centerY = h >> 1;
+        radius = (centerX > centerY ? centerY : centerX);
+        mRectF = new RectF(0 + dip2px(deltaCircleValue), 0 + dip2px(deltaCircleValue),
+                w - dip2px(deltaCircleValue), h - dip2px(deltaCircleValue));
+        insideRectF = new RectF(centerX - radius + dip2px(deltaCircleValue), centerY - radius + dip2px(deltaCircleValue),
+                centerX + radius - dip2px(deltaCircleValue), centerY + radius - dip2px(deltaCircleValue));
     }
 
     private void calculateNeedSomething() {
@@ -156,52 +178,25 @@ public class CircleProgressView extends View {
         }
         mTextX = mWidth / 2F - rect.width() / 2F;
         mTextY = mHeight / 2F + rect.height() / 2F;
-        radius = Math.min(mWidth, mHeight) / 2F - 3 * mRingStrokeWidth / 2F;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        // 这里让颜色渐变
+        beforeDraw();
+        drawBg(canvas);
+        drawCircle(canvas);
+        drawText(canvas);
+        drawRedDot(canvas);
+        afterDraw();
+    }
+
+    private void beforeDraw() {
         synchronized (lock) {
             startTime = System.currentTimeMillis();
         }
-        long deltaTime = startTime - theStartTime;
-        sweepAngle = (float) (deltaTime * 0.012);//偏转角度
-        float fraction = sweepAngle / COMPLETE_PROGRESS_DEGREE;
-        mRingPaint.setColor(getCurrentColor(fraction));
+    }
 
-        calculateNeedSomething();
-        canvas.drawCircle(mRectF.centerX(), mRectF.centerY(), radius, mBgCirclePaint);
-        if (!TextUtils.isEmpty(mTextStr)) {
-            canvas.drawText(mTextStr, mTextX, mTextY, mTextPaint);
-        }
-        canvas.drawArc(mRectF, DEFAULT_PROGRESS_DEGREE, sweepAngle, false, mRingPaint);
-
-        if (sweepAngle > 300.0f) {
-            int index = (int) ((360 - sweepAngle) / 12 + 1);
-            String text = String.valueOf(index);
-            // 第四象限(先转换为角度,然后根据圆里面的关系去换算为坐标)
-            double angle = Math.toRadians(sweepAngle - 270);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-            float x1 = (float) (mRectF.centerX() - radius * cos);
-            float y1 = (float) (mRectF.centerY() - radius * sin) - dip2px(5);
-            // 调节位置,因为可能超过显示区域
-            if (index > 1) {
-                canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
-                Rect rect = new Rect();
-                mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
-                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
-            } else if (index == 1) {
-                // 调节"1"的位置
-                dip2px((sweepAngle - 348.0f) / 2);
-                canvas.drawCircle(x1, y1, mSmallCircleRadius - dip2px((sweepAngle - 348.0f) / 2), mSmallCirclePaint);
-                Rect rect = new Rect();
-                mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
-                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
-            }
-        }
-
+    private void afterDraw() {
         if (sweepAngle > 360.0f) {
             if (null != listener) {
                 listener.callback();
@@ -213,6 +208,55 @@ public class CircleProgressView extends View {
         if (!mShouldStopAnim) {
             postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
         }
+    }
+
+    private void drawRedDot(Canvas canvas) {
+
+        if (sweepAngle > 300.0f) {
+            int index = (int) ((360 - sweepAngle) / 12 + 1);
+            String text = String.valueOf(index);
+            // 第四象限(先转换为角度,然后根据圆里面的关系去换算为坐标)
+            double angle = Math.toRadians(sweepAngle - 270f);
+            double sin = Math.sin(angle);
+            double cos = Math.cos(angle);
+            float x1 = (float) (centerX - (radius - dip2px(deltaCircleValue)) * cos);
+            float y1 = (float) (centerY - (radius - dip2px(deltaCircleValue)) * sin);
+            // 调节位置,因为可能超过显示区域
+            if (index > 2) {
+                canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
+                Rect rect = new Rect();
+                mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
+                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
+            } else {
+                // 调节"1"的位置
+                canvas.drawCircle(x1, y1, mSmallCircleRadius - dip2px((sweepAngle - 336.0f) / 3f), mSmallCirclePaint);
+                Rect rect = new Rect();
+                mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
+                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
+            }
+        }
+
+    }
+
+    private void drawText(Canvas canvas) {
+        calculateNeedSomething();
+        if (!TextUtils.isEmpty(mTextStr)) {
+            canvas.drawText(mTextStr, mTextX, mTextY, mTextPaint);
+        }
+    }
+
+    private void drawCircle(Canvas canvas) {
+        long deltaTime = startTime - theStartTime;
+        sweepAngle = (float) (deltaTime * 0.012);//偏转角度
+        float fraction = sweepAngle / COMPLETE_PROGRESS_DEGREE;
+        mRingPaint.setColor(getCurrentColor(fraction));
+
+        canvas.drawArc(insideRectF, DEFAULT_PROGRESS_DEGREE, 360.0f, false, insideCirclePaint);
+        canvas.drawArc(mRectF, DEFAULT_PROGRESS_DEGREE, sweepAngle, false, mRingPaint);
+    }
+
+    private void drawBg(Canvas canvas) {
+        canvas.drawCircle(centerX, centerY, radius, mBgCirclePaint);
     }
 
 
@@ -260,12 +304,11 @@ public class CircleProgressView extends View {
     /**
      * 将sp值转换为px值，保证文字大小不变
      *
-     * @param context
      * @param spValue
      * @return
      */
-    public int sp2px(Context context, float spValue) {
-        final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
+    public int sp2px(float spValue) {
+        final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
         return (int) (spValue * fontScale + 0.5f);
     }
 
@@ -287,11 +330,15 @@ public class CircleProgressView extends View {
     }
 
 
+    private final int COLOR_BEGIN = Color.parseColor("#00ffa8");
+    private final int COLOR_MEDUIM = Color.parseColor("#ffdd3c");
+    private final int COLOR_END = Color.parseColor("#ff3c61");
+
     private int getCurrentColor(float progress) {
         if (progress < 0.5f) {
-            return evaluate(progress * 2, Color.GREEN, Color.YELLOW);
+            return evaluate(progress * 2, COLOR_BEGIN, COLOR_MEDUIM);
         }
-        return evaluate((progress - 0.5f) * 2, Color.YELLOW, Color.RED);
+        return evaluate((progress - 0.5f) * 2, COLOR_MEDUIM, COLOR_END);
     }
 
 
