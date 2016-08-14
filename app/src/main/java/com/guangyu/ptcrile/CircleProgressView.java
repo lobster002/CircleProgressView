@@ -208,13 +208,8 @@ public class CircleProgressView extends View {
 
     }
 
-    private int repeatCount = 0;
-
     private void doAfter() {//绘制完毕之后 其他的逻辑
-        repeatCount++;
         if (sweepAngle > 360.0f) {
-            Log.e("Tag", String.valueOf(repeatCount / 30));
-            repeatCount = 0;
             if (null != listener) {
                 listener.callback();
             }
@@ -223,8 +218,6 @@ public class CircleProgressView extends View {
             }
         }
         if (!isAnimStop) {
-//            SystemClock.sleep(POST_WAIT_TIME);
-//            invalidate();
             postInvalidateDelayed(POST_WAIT_TIME);
         }
     }
