@@ -8,19 +8,21 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 /**
- * 要修改文字内容请调用{@link #setCenterText(String)} <br>
+ * 要修改文字内容请调用{@link #setCenterText(String)}
  * 修改进度 调用{@link #setCurrentProgress(long)} 单位为毫秒  取值为 0 ~ 30 * 1000
- * <code>onDestroy</code>的时候,请调用{@link #stopAnim()} ,防止内存泄露<br>
+ * 父布局被销毁时  建议调用一下  {@link #stopAnim()} 防止内存泄露
  * 关于暂停刷新界面 {@link #stopAnim()}  返回当前的 进度 progress  需要保存进度  调用 {@link #startAnim(long)} 参数为返回的进度值
  */
 public class CircleProgressView extends View {
 
-    private final long EVERY_INVALIDATE_INTERVAL = 10L;// 每次自动刷新时间,可以自己修改(请暂不要自己修改)
+    private final long POST_WAIT_TIME = 10L;// 每次休眠时间  不要乱改 超过30 就会帧数下将  进度不自然
 
     private final long COMPLETE_PROGRESS_TIME = 30 * 1000L;//完成一圈进度时间(请暂不要自己修改)
 
@@ -112,6 +114,7 @@ public class CircleProgressView extends View {
 
         mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.setTextSize(mTextSize);
+        mTextPaint.setColor(Color.WHITE);
 
         mSmallTextPaint = new Paint(mTextPaint);
         mSmallTextPaint.setTextSize(mSmallTextSize);
@@ -153,9 +156,6 @@ public class CircleProgressView extends View {
 
     private void drawCircle(Canvas canvas) {
         long deltaTime = startTime - theStartTime;
-        if (deltaTime > COMPLETE_PROGRESS_TIME) {
-            deltaTime %= COMPLETE_PROGRESS_TIME;
-        }
         sweepAngle = (float) (deltaTime * 0.012);//偏转角度
         float fraction = sweepAngle / 360.0f;
         currentColor = getCurrentColor(fraction);
@@ -208,8 +208,13 @@ public class CircleProgressView extends View {
 
     }
 
+    private int repeatCount = 0;
+
     private void doAfter() {//绘制完毕之后 其他的逻辑
+        repeatCount++;
         if (sweepAngle > 360.0f) {
+            Log.e("Tag", String.valueOf(repeatCount / 30));
+            repeatCount = 0;
             if (null != listener) {
                 listener.callback();
             }
@@ -218,7 +223,9 @@ public class CircleProgressView extends View {
             }
         }
         if (!isAnimStop) {
-            postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
+//            SystemClock.sleep(POST_WAIT_TIME);
+//            invalidate();
+            postInvalidateDelayed(POST_WAIT_TIME);
         }
     }
 
@@ -243,14 +250,14 @@ public class CircleProgressView extends View {
 
     public void startAnim() {
         isAnimStop = false;
-        postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
+        postInvalidateDelayed(POST_WAIT_TIME);
     }
 
 
     public void startAnim(long currentProgress) {
         isAnimStop = false;
         setCurrentProgress(currentProgress);
-        postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
+        postInvalidateDelayed(POST_WAIT_TIME);
     }
 
     public long stopAnim() {
@@ -280,6 +287,7 @@ public class CircleProgressView extends View {
 
     //因为该方法调用频繁，变量声明在这里，减少每次调用时，为临时变量分配内存次数
     int startA, startR, startG, startB, endA, endR, endG, endB;
+
     //颜色渐变算法 写的还不错
     public int evaluate(float fraction, int startValue, int endValue) {
         startA = (startValue >> 24) & 0xff;
