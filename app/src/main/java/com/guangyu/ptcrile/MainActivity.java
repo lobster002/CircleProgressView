@@ -11,19 +11,19 @@ import android.widget.Toast;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private CircleProgressView c;
+    private CircleProgressView circleProgressView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText) findViewById(R.id.edit);
-        c = (CircleProgressView) findViewById(R.id.circle);
-        c.setOnDrawCircleListener(new OnDrawCircleListener() {
+        circleProgressView = (CircleProgressView) findViewById(R.id.circle);
+        circleProgressView.setCenterText("第一圈");
+        circleProgressView.setOnDrawCircleListener(new OnDrawCircleListener() {
             @Override
             public void callback() {
-                Toast.makeText(MainActivity.this, "一圈", Toast.LENGTH_SHORT).show();
-                c.changeNeedStr(String.valueOf(new Random().nextInt(100000) + 10000));
+                circleProgressView.setCenterText(String.valueOf(new Random().nextInt(100000) + 10000));
             }
         });
 
@@ -38,8 +38,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        c.stopAnim();
+        circleProgressView.stopAnim();
     }
+
+    private long cyrrentProgess = 0;
 
     @Override
     public void onClick(View v) {
@@ -50,14 +52,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return;
                 }
                 long value = Long.valueOf(text);
-                c.setCurrentProgress(value);
+                circleProgressView.setCurrentProgress(value);
                 break;
             case R.id.btn2:
-                if (c.isAnimStopped()) {
-                    c.startAnim();
+                if (circleProgressView.isAnimStopped()) {
+                    circleProgressView.startAnim(cyrrentProgess);
                     ((Button) v).setText("stop");
                 } else {
-                    c.stopAnim();
+                    cyrrentProgess = circleProgressView.stopAnim();
                     ((Button) v).setText("start");
                 }
                 break;

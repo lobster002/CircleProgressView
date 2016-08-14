@@ -15,7 +15,7 @@ import android.view.View;
 
 /**
  * 如果觉得进度太快请设置{@link #EVERY_INVALIDATE_INTERVAL} 单位是毫秒 <br>
- * 要修改文字内容请调用{@link #changeNeedStr(String)}<br>
+ * 要修改文字内容请调用{@link #setCenterText(String)} <br>
  * <code>Activity onDestroy</code>的时候,请调用{@link #stopAnim()} ,防止内存泄露<br>
  */
 public class CircleProgressView extends View {
@@ -64,24 +64,23 @@ public class CircleProgressView extends View {
     private float mRingStrokeWidth;
     private RectF insideRectF;
     private float sweepAngle;//偏转角度
+
+    //控件中心坐标
     private int centerX = 0;
     private int centerY = 0;
+
     private volatile int currentColor = 0;//当前进度条颜色
 
 
-    private int deltaCircleValue = 12;
-    /**
-     * 走完一圈需要的总的刷新次数
-     */
+    private int deltaCircleValue = 12;//内外圆半径差
+
     private float radius;
     /**
      * 当前已经刷新的次数
      */
     private float mTextX;
     private float mTextY;
-    /**
-     * 可以考虑在Activity的onDestroy方法里面调用,防止内存泄露(这里比较重要)
-     */
+
     private boolean mShouldStopAnim;
 
 
@@ -91,6 +90,9 @@ public class CircleProgressView extends View {
     private volatile long theStartTime = 0l;
 
     private int bgColor = Color.parseColor("#33000000");
+
+    private float SMALL_TEXT_SIZE = 15.0f;
+    private float CENTER_TEXT_SIZE = 55.0f;
 
     private Object lock = new Object();
 
@@ -116,8 +118,8 @@ public class CircleProgressView extends View {
     }
 
     private void init(Context context, AttributeSet attrs) {
-        mTextSize = sp2px(55);
-        mSmallTextSize = sp2px(10);
+        mTextSize = sp2px(CENTER_TEXT_SIZE);
+        mSmallTextSize = sp2px(SMALL_TEXT_SIZE);
         mRingStrokeWidth = dip2px(10);
         mSmallCircleRadius = dip2px(11);
 
@@ -203,20 +205,22 @@ public class CircleProgressView extends View {
             float x1 = (float) (centerX - (radius - dip2px(deltaCircleValue)) * cos);
             float y1 = (float) (centerY - (radius - dip2px(deltaCircleValue)) * sin);
             mSmallCirclePaint.setColor(currentColor);
-            // 调节位置,因为可能超过显示区域
 
+            // 调节位置,  是为了让文字居中
             String text = String.valueOf(index);
-            if (sweepAngle > 348.0f) {//小于等于1
+            if (sweepAngle > 348.0f) {//1
                 float scale = mSmallCircleRadius - dip2px((sweepAngle - 348.0f) / 2);
                 canvas.drawCircle(x1, y1, scale, mSmallCirclePaint);
                 if (0 != index) {//0的时候显示无意义
                     Rect rect = new Rect();
+                    mSmallTextPaint.setTextSize(mSmallTextSize - sp2px((sweepAngle - 348) / 1.2f));
                     mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
                     canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
                 }
             } else {//大于1
                 canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
                 Rect rect = new Rect();
+                mSmallTextPaint.setTextSize(mSmallTextSize);
                 mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
                 canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
             }
@@ -277,16 +281,26 @@ public class CircleProgressView extends View {
         postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
     }
 
-    public void stopAnim() {
-        mShouldStopAnim = true;
+
+    public void startAnim(long currentProgress) {
+        mShouldStopAnim = false;
+        setCurrentProgress(currentProgress);
+        postInvalidateDelayed(EVERY_INVALIDATE_INTERVAL);
     }
+
+    public long stopAnim() {
+        mShouldStopAnim = true;
+        long currentTime = System.currentTimeMillis();
+        return currentTime - theStartTime;
+    }
+
 
     /**
      * 这里根据需要去改变中间需要显示的字符串
      *
      * @param str
      */
-    public void changeNeedStr(String str) {
+    public void setCenterText(String str) {
         mTextStr = str;
     }
 
