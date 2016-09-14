@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         editText = (EditText) findViewById(R.id.edit);
         circleProgressView = (CircleProgressView) findViewById(R.id.circle);
-        circleProgressView.setCenterText("第一圈");
+        circleProgressView.setCenterText("111111111111111");
         circleProgressView.setOnDrawCircleListener(new OnDrawCircleListener() {
             @Override
             public void callback() {

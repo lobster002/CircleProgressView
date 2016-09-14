@@ -1,4 +1,5 @@
-package sky.com.myapplication;
+
+package com.guangyu.ptcrile;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -12,6 +13,8 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
+
+import com.guangyu.ptcrile.OnDrawCircleListener;
 
 /**
  * 要修改文字内容请调用{@link #setCenterText(String)}
@@ -185,6 +188,7 @@ public class CircleProgressView extends View {
     private float x1 = 0;
     private float y1 = 0;
     private String text = " ";
+    private Rect rect = new Rect();
     private void drawDot(Canvas canvas) {
         if (sweepAngle > 300.0f) {
             index = (int) ((360 - sweepAngle) / 12 + 1);
@@ -202,17 +206,15 @@ public class CircleProgressView extends View {
                 float scale = mSmallCircleRadius - dip2px((sweepAngle - 348.0f) / 2);
                 canvas.drawCircle(x1, y1, scale, mSmallCirclePaint);
                 if (0 != index) {//0的时候显示无意义
-                    Rect rect = new Rect();
                     mSmallTextPaint.setTextSize(mSmallTextSize - sp2px((sweepAngle - 348) / 1.2f));
                     mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
-                    canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
+                    canvas.drawText(text, x1 - mSmallTextPaint.measureText(text) / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
                 }
             } else {//大于1
                 canvas.drawCircle(x1, y1, mSmallCircleRadius, mSmallCirclePaint);
-                Rect rect = new Rect();
                 mSmallTextPaint.setTextSize(mSmallTextSize);
                 mSmallTextPaint.getTextBounds(text, 0, text.length(), rect);
-                canvas.drawText(text, x1 - rect.width() / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
+                canvas.drawText(text, x1 -  mSmallTextPaint.measureText(text) / 2F, y1 + rect.height() / 2F, mSmallTextPaint);
             }
         }
 
