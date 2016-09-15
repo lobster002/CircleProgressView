@@ -10,13 +10,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Build;
-import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-
-import com.guangyu.ptcrile.OnDrawCircleListener;
 
 /**
  * 要修改文字内容请调用{@link #setCenterText(String)}
@@ -25,8 +22,6 @@ import com.guangyu.ptcrile.OnDrawCircleListener;
  * 关于暂停刷新界面 {@link #stopAnim()}  返回当前的 进度 progress  需要保存进度  调用 {@link #startAnim(long)} 参数为返回的进度值
  */
 public class CircleProgressView extends View {
-
-    private final long POST_WAIT_TIME = 20L;// 每次休眠时间  用来控制帧数
 
     private final long COMPLETE_PROGRESS_TIME = 30 * 1000L;//完成一圈进度时间(请暂不要自己修改)
 
@@ -231,8 +226,8 @@ public class CircleProgressView extends View {
                 theStartTime = startTime = System.currentTimeMillis();
             }
         }
-        if (!isAnimStop) {
-//            SystemClock.sleep(POST_WAIT_TIME);//适当休眠  节省性能
+        if (!needStop) {
+//            SystemClock.sleep(15);// 需要的时候在这里设置休眠   节省性能
             invalidate();
         }
     }
@@ -251,26 +246,26 @@ public class CircleProgressView extends View {
         }
     }
 
-    private boolean isAnimStop = false;//状态标记位
+    private boolean needStop = false;//状态标记位
 
     public boolean isAnimStopped() {//判断是否 停止更新
-        return isAnimStop;
+        return needStop;
     }
 
     public void startAnim() {
-        isAnimStop = false;
-        postInvalidateDelayed(POST_WAIT_TIME);
+        needStop = false;
+        postInvalidate();
     }
 
 
     public void startAnim(long currentProgress) {
-        isAnimStop = false;
+        needStop = false;
         setCurrentProgress(currentProgress);
-        postInvalidateDelayed(POST_WAIT_TIME);
+        postInvalidate();
     }
 
     public long stopAnim() {
-        isAnimStop = true;
+        needStop = true;
         long currentTime = System.currentTimeMillis();
         return currentTime - theStartTime;
     }
@@ -295,8 +290,8 @@ public class CircleProgressView extends View {
     }
 
     //因为该方法调用频繁，变量声明在这里，减少每次调用时，为临时变量分配内存次数
-
     int startA, startR, startG, startB, endA, endR, endG, endB;
+
     //颜色渐变算法 写的还不错
     public int evaluate(float fraction, int startValue, int endValue) {
         startA = (startValue >> 24) & 0xff;
