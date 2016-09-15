@@ -10,8 +10,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import com.guangyu.ptcrile.OnDrawCircleListener;
@@ -24,7 +26,7 @@ import com.guangyu.ptcrile.OnDrawCircleListener;
  */
 public class CircleProgressView extends View {
 
-    private final long POST_WAIT_TIME = 10L;// 每次休眠时间  不要乱改 超过30 就会帧数下将  进度不自然
+    private final long POST_WAIT_TIME = 20L;// 每次休眠时间  用来控制帧数
 
     private final long COMPLETE_PROGRESS_TIME = 30 * 1000L;//完成一圈进度时间(请暂不要自己修改)
 
@@ -230,7 +232,8 @@ public class CircleProgressView extends View {
             }
         }
         if (!isAnimStop) {
-            postInvalidateDelayed(POST_WAIT_TIME);
+//            SystemClock.sleep(POST_WAIT_TIME);//适当休眠  节省性能
+            invalidate();
         }
     }
 
